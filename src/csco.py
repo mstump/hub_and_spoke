@@ -1,4 +1,16 @@
 #!/usr/bin/env python
+#
+#
+# Copyright 2013, DataStax
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#
+# This software is not "Supported Software" and, is not supported by DataStax under any software subscription or other agreement.
+# See the License for the specific language governing permissions and limitations under the License.
 
 KEYSPACE_DEF = """CREATE KEYSPACE %s WITH REPLICATION={'class' : 'SimpleStrategy', 'replication_factor' : 1};"""
 
@@ -135,7 +147,6 @@ def shard_generator(shards):
 
 
 def cassandra_connect(seed, keyspace=None):
-    from cassandra import AlreadyExists
     from cassandra.cluster import Cluster
     from cassandra.io.libevreactor import LibevConnection
 
@@ -145,6 +156,8 @@ def cassandra_connect(seed, keyspace=None):
 
 
 def initialize_cluster(session, keyspace):
+    from cassandra import AlreadyExists
+
     try:
         session.execute(KEYSPACE_DEF % keyspace)
     except AlreadyExists:
@@ -527,7 +540,7 @@ def setup_central_broker(cassandra_server, keyspace, listen_hostname, listen_por
         shards = shard_generator(SHARDS)
         cluster, session = cassandra_connect(cassandra_server, keyspace)
 
-        server = CscoHTTPServer(session, shards, dispatcher, ('localhost', listen_port), CscoHandler)
+        server = CscoHTTPServer(session, shards, dispatcher, ('0.0.0.0', listen_port), CscoHandler)
         print('Started http server')
         server.serve_forever()
 
@@ -552,7 +565,7 @@ def setup_leaf_node(cassandra_server, keyspace, listen_hostname, listen_port, si
         shards = shard_generator(SHARDS)
         cluster, session = cassandra_connect("localhost", keyspace)
 
-        server = CscoHTTPServer(session, shards, leaf_node_dispatcher, ('localhost', listen_port), CscoHandler)
+        server = CscoHTTPServer(session, shards, leaf_node_dispatcher, ('0.0.0.0', listen_port), CscoHandler)
         print('Started http server')
         server.serve_forever()
 
