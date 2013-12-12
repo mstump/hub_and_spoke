@@ -8,10 +8,13 @@ Every 10 seconds the central broker will iterate through nodes with valid regist
 
 After fetching messages from the remote site the central broker will check if it has any messages for the leaf node. If messages are in the queue it will post these messages to the remote node, and they will be persisted.
 
+If a message is posted to the central broker then this process is reversed. The central broker will persist the message to the local keyspace, and then dispatch the message to queues for the corresponding remote nodes.
+
+Every 10 seconds the central broker will check if it has messages for remote nodes with valid registrations and will post those messages to the remote site. The remote site will then persist the message to it's local keyspace.
 
 ## Available options
 ```
-$ ./src/csco.py -h                                                                                                                                                                                                                                                                                 
+$ ./src/csco.py -h
 Usage: csco.py [options]
 
 Options:
@@ -40,4 +43,3 @@ These steps assume cassandra is running on localhost, if this is not true please
 1. Start the central broker ```python csco.py -c -k csco -p 8080 -d 242```
 1. Start the leaf node ```python csco.py -l 242 -k cm_1 -p 8181 -b localhost:8080```
 1. Post a message to the central broker or the leaf node ```python csco.py -x localhost:8080```
-

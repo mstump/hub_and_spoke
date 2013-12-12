@@ -71,6 +71,21 @@ EXAMPLE_MESSAGE_2 = """
 }
 """
 
+EXAMPLE_MESSAGE_MOCK = """
+{
+    "type" : "Message",
+    "message_type" : "serial_numbers",
+    "attributes" : {
+        "serial_number" : "%s",
+        "item_number" : "%s",
+        "name" : "LEGEND_LABEL",
+        "sequence" : 1,
+        "site_id" : %d,
+        "value" : "EPC3925"
+    }
+}
+"""
+
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from multiprocessing import Process
@@ -140,7 +155,7 @@ def message_decoder(obj):
 def shard_generator(shards):
     i = 0
     while True:
-        if i > shards:
+        if i = shards:
             i = 0
         yield i
         i += 1
@@ -324,7 +339,6 @@ class CscoHandler(BaseHTTPRequestHandler):
         shards = self.server.context["shards"]
         message_dispatch = self.server.context["message_dispatch"]
 
-
         url = urlparse.urlparse(self.path)
         path = [x.lower() for x in filter(lambda x: x != "", posixpath.normpath(urllib.unquote(url.path)).split('/'))]
 
@@ -391,6 +405,7 @@ class CscoHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(output, cls=MessageEncoder))
         self.wfile.close()
+
 
 def encode_multipart(fields, boundary=None):
     def escape_quote(s):
@@ -523,12 +538,19 @@ def periodically_register_node(host, site_id, listen_address, interval=5*60):
         time.sleep(interval)
 
 
-def central_dispatcher(queues):
-    return (lambda _: queues)
+def central_dispatcher(message):
+    if int(message.attributes["serial_number"]) > 5000:
+        return [241]
+    else:
+        return [242]
 
 
 def leaf_node_dispatcher(message):
     return [0]
+
+
+def generate_mock_message(serial_number, item_number, site_id):
+    return EXAMPLE_MESSAGE_MOCK % (serial_number, item_number, site_id)
 
 
 def setup_central_broker(cassandra_server, keyspace, listen_hostname, listen_port, dispatcher):
@@ -601,6 +623,10 @@ if __name__ == "__main__":
                       action="store", dest="post", type="string", metavar="HOST",
                       help="post sample messages to host")
 
+    parser.add_option("-m", "--mock",
+                      action="store", dest="mock", type="string", metavar="HOST",
+                      help="post mock messages to host")
+
     parser.add_option("-i", "--initialize",
                       action="store_true", dest="initialize", default=False,
                       help="initialize the keyspace and column families")
@@ -634,6 +660,7 @@ if __name__ == "__main__":
     central_server = options.central_server
     dispatch = options.dispatch
     post = options.post
+    mock = options.mock
     hostname = options.hostname
     seed = options.seed
     port = options.port
@@ -643,6 +670,19 @@ if __name__ == "__main__":
         print "posting sample messages to %s" % post
         messages = [json.loads(x, object_hook=message_decoder) for x in [EXAMPLE_MESSAGE_1, EXAMPLE_MESSAGE_2]]
         print client_post_message(post, messages)
+        exit(0)
+
+    if mock:
+        print "posting sample messages to %s" % mock
+        while True:
+            serial_number = random.randrange(10000)
+            item_number = random.randrange(10000)
+            site_id = random.choice([242, 241, 240])
+            print "posting message with serial_number %s, item_number %s, and site_id %s" % (serial_number, item_number, site_id)
+            message = json.loads(generate_mock_message(serial_number, item_number, site_id), object_hook=message_decoder)
+            print client_post_message(mock, [message])
+            time.sleep(.5)
+
         exit(0)
 
     if not keyspace:
@@ -667,7 +707,7 @@ if __name__ == "__main__":
 
     elif central:
         print "starting central node"
-        setup_central_broker(seed, keyspace, hostname, port, central_dispatcher(dispatch))
+        setup_central_broker(seed, keyspace, hostname, port, central_dispatcher)
 
     else:
         parser.print_help()
