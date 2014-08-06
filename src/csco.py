@@ -155,7 +155,7 @@ def message_decoder(obj):
 def shard_generator(shards):
     i = 0
     while True:
-        if i = shards:
+        if i == shards:
             i = 0
         yield i
         i += 1
