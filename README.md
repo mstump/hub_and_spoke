@@ -48,6 +48,9 @@ Options:
                         central broker should dispatch messages to queues
 ```
 
+## Dependencies
+The only dependency is the [DataStax python driver](https://github.com/datastax/python-driver).
+
 ## Example usage
 These steps assume Cassandra is running on localhost, if this is not true please specify a seed node using the ```-s``` commandline option.
 
