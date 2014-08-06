@@ -1,6 +1,8 @@
+An example of hub and spoke replication using Cassandra as the local data store.
+
 ## Overview
 
-There are two types of nodes, a leaf node and a central broker. A leaf node would be a manufacturing site, and a central broker would be cisco HQ.
+There are two types of nodes, a leaf node and a central broker. A leaf node would be a remote site, and a central broker would be HQ.
 
 When a leaf node boots up it will attempt to register itself every 5 minutes with the central broker specified by the ```-b``` commandline option. The leaf node specifies which queue it is interested in monitoring and at what IP/port it can be reached. If a leaf node doesn't check in within 15 minutes it will be removed from the registration.
 
@@ -11,6 +13,17 @@ After fetching messages from the remote site the central broker will check if it
 If a message is posted to the central broker then this process is reversed. The central broker will persist the message to the local keyspace, and then dispatch the message to queues for the corresponding remote nodes.
 
 Every 10 seconds the central broker will check if it has messages for remote nodes with valid registrations and will post those messages to the remote site. The remote site will then persist the message to it's local keyspace.
+
+Assuming a network connection is available messages should be
+
+## Future modifications
+This code was designed to minimize external dependencies, and not for high throughput or low latency use cases. To better suit low latency or high throughput use-cases the following modifications should be performed:
+
+1. Move from fixed interval polling to push notification.
+1. The server is currently single threaded, and each leaf node is polled synchronously. Throughput can be increased by starting a thread per leaf node.
+1. Rewrite Cassandra write operations to use asyncs.
+1. Move critical portions to a more efficient language or VM.
+1. Use transport compression.
 
 ## Available options
 ```
@@ -36,10 +49,10 @@ Options:
 ```
 
 ## Example usage
-These steps assume cassandra is running on localhost, if this is not true please specify a seed node using the ```-s``` commandline option.
+These steps assume Cassandra is running on localhost, if this is not true please specify a seed node using the ```-s``` commandline option.
 
-1. Initialize the keyspace for the central broker ```python csco.py -i -k csco```
-1. Initialize the keyspace for the leaf node ```python csco.py -i -k cm_1```
-1. Start the central broker ```python csco.py -c -k csco -p 8080 -d 242```
-1. Start the leaf node ```python csco.py -l 242 -k cm_1 -p 8181 -b localhost:8080```
-1. Post a message to the central broker or the leaf node ```python csco.py -x localhost:8080```
+1. Initialize the keyspace for the central broker ```python replicate.py -i -k replicate```
+1. Initialize the keyspace for the leaf node ```python replicate.py -i -k cm_1```
+1. Start the central broker ```python replicate.py -c -k replicate -p 8080 -d 242```
+1. Start the leaf node ```python replicate.py -l 242 -k cm_1 -p 8181 -b localhost:8080```
+1. Post a message to the central broker or the leaf node ```python replicate.py -x localhost:8080```
