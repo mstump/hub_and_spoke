@@ -27,8 +27,8 @@ This code was designed to minimize external dependencies, and not for high throu
 
 ## Available options
 ```
-$ ./src/csco.py -h
-Usage: csco.py [options]
+$ ./src/replicate.py -h
+Usage: replicated.py [options]
 
 Options:
   -h, --help            show this help message and exit
@@ -54,8 +54,8 @@ The only dependency is the [DataStax python driver](https://github.com/datastax/
 ## Example usage
 These steps assume Cassandra is running on localhost, if this is not true please specify a seed node using the ```-s``` commandline option.
 
-1. Initialize the keyspace for the central broker ```python replicate.py -i -k replicate```
+1. Initialize the keyspace for the central broker ```python replicate.py -i -k central```
 1. Initialize the keyspace for the leaf node ```python replicate.py -i -k cm_1```
-1. Start the central broker ```python replicate.py -c -k replicate -p 8080 -d 242```
-1. Start the leaf node ```python replicate.py -l 242 -k cm_1 -p 8181 -b localhost:8080```
+1. Start the central broker, listen on port 8080 ```python replicate.py -c -k central -p 8080 -d 242```
+1. Start the leaf node, listen on 8181, connect to broker at localhost:8080 ```python replicate.py -l 242 -k cm_1 -p 8181 -b localhost:8080```
 1. Post a message to the central broker or the leaf node ```python replicate.py -x localhost:8080```
